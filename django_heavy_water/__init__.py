@@ -1,1 +1,0 @@
-default_app_config = 'django_heavy_water.pps.HeavyWaterConfig'

@@ -2,8 +2,9 @@ from django.apps import AppConfig
 
 
 class HeavyWaterConfig(AppConfig):
-    name = 'heavy_water'
-    SETTINGS_MODULE = 'app_settings'
+    name = "heavy_water"
+    default_auto_field = "django.db.models.AutoField"
+    SETTINGS_MODULE = "app_settings"
 
     def ready(self):
         from django.conf import settings
