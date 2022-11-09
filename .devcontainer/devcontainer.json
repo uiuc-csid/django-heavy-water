@@ -9,7 +9,7 @@
 			// Update 'VARIANT' to pick a Python version: 3, 3.10, 3.9, 3.8, 3.7, 3.6
 			// Append -bullseye or -buster to pin to an OS version.
 			// Use -bullseye variants on local on arm64/Apple Silicon.
-			"VARIANT": "3.8-bullseye"
+			"PYTHON_VERSION": "3.9"
 		}
 	},
 
@@ -55,7 +55,7 @@
 
 	"features": {
 		"common": {
-			"installZsh": false,
+			"installZsh": true,
         	"installOhMyZsh": false
 		}
 	},
@@ -64,5 +64,5 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "poetry install --no-interaction --no-ansi"
+	"postCreateCommand": "poetry install --no-interaction --no-ansi && poetry run pre-commit install"
 }

@@ -17,6 +17,7 @@ mypy = "*"
 mypy-extensions = "*"
 django-stubs = "*"
 black = "*"
+pre-commit = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.8"]

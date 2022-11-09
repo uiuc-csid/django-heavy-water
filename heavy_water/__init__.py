@@ -1,11 +1,12 @@
-from typing import Any
 from abc import ABC, abstractmethod
 from traceback import print_exc
-from django.db import transaction
-from django.core.management.color import Style
-from django.core.management.base import OutputWrapper
-from django.contrib.auth import get_user_model
+from typing import Any
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.management.base import OutputWrapper
+from django.core.management.color import Style
+from django.db import transaction
 
 
 class BaseDataBuilder(ABC):
@@ -24,31 +25,36 @@ class BaseDataBuilder(ABC):
                 self.stdout.write(
                     self.style.SUCCESS(f"Successfully set up data for {self.app_name}")
                 )
-        except AssertionError as ex:
+        except AssertionError:
             self.stderr.write(
                 self.style.ERROR(
                     f"Assertion failed setting up data for {self.app_name}."
                 )
             )
             print_exc()  # TODO: print to self.stderr
-            self.stderr.write(self.style.ERROR(f"Rolling back transaction"))
+            self.stderr.write(self.style.ERROR("Rolling back transaction"))
 
-    def ensure_superuser(self):
+    def get_or_create_superuser(self, username=None, email=None, password=None):
         USER_MODEL = get_user_model()
 
+        username = username or settings.HEAVY_WATER_ROOT_USERNAME
+        email = email or settings.HEAVY_WATER_ROOT_EMAIL
+        password = password or settings.HEAVY_WATER_ROOT_PASSWORD
+
         if not USER_MODEL.objects.filter(
-            username=settings.HEAVY_WATER_ROOT_USERNAME
+            username=username,
         ):
             USER_MODEL.objects.create_superuser(
-                username=settings.HEAVY_WATER_ROOT_USERNAME,
-                email=settings.HEAVY_WATER_ROOT_EMAIL,
-                password=settings.HEAVY_WATER_ROOT_PASSWORD,
+                username=username,
+                email=email,
+                password=password,
             )
 
-        assert USER_MODEL.objects.filter(
-            username=settings.HEAVY_WATER_ROOT_USERNAME,
-            email=settings.HEAVY_WATER_ROOT_EMAIL,
-        ).exists()
+        superuser = USER_MODEL.objects.get(
+            username=username,
+        )
+
+        return superuser
 
     @abstractmethod
     def handle(self):
