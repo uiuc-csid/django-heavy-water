@@ -1,14 +1,11 @@
-ARG VARIANT="3.10-bullseye"
-ARG PY_POETRY_HOME="/opt/poetry"
-ARG PY_POETRY_VERSION="1.1"
-
-FROM python:${VARIANT}
+ARG PYTHON_VERSION=3.9
+FROM python:${PYTHON_VERSION}
+ARG POETRY_VERSION=1.2.0
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    POETRY_VIRTUALENVS_CREATE=false
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN pip3 install "poetry==$POETRY_VERSION"
 
 ENV DEBIAN_FRONTEND=dialog
