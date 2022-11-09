@@ -6,4 +6,4 @@ from heavy_water import BaseDataBuilder
 class DataBuilder(BaseDataBuilder):
     def handle(self):
         if settings.HEAVY_WATER_CREATE_ROOT_USER:
-            self.ensure_superuser()
+            self.get_or_create_superuser()
