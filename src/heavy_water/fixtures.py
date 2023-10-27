@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from traceback import print_exc
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractBaseUser
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AbstractBaseUser
 from django.core.management.base import OutputWrapper
 from django.core.management.color import Style
 from django.db import transaction
