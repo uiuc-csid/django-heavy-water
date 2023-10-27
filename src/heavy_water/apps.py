@@ -8,6 +8,7 @@ class HeavyWaterConfig(AppConfig):
 
     def ready(self):
         from django.conf import settings
+
         from . import app_settings as defaults
 
         for name in dir(defaults):

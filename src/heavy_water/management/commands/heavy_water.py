@@ -1,11 +1,12 @@
 from importlib import import_module
 from inspect import getmembers, isclass
 from traceback import print_exc
-from django.db import transaction
-from django.core.management.commands.flush import Command as FlushCommand
-from django.utils.module_loading import module_has_submodule
+
 from django.apps import apps
 from django.conf import settings
+from django.core.management.commands.flush import Command as FlushCommand
+from django.db import transaction
+from django.utils.module_loading import module_has_submodule
 
 from heavy_water import BaseDataBuilder
 
@@ -22,7 +23,7 @@ class Command(FlushCommand):
             help="Wipe the database?",
         )
 
-        # TODO: Add arguments for tagged data fixtures
+        # TODO(joshuata): Add arguments for tagged data fixtures
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -53,5 +54,5 @@ class Command(FlushCommand):
                     style=self.style,
                 )
                 obj._heavy_water()
-            except Exception as ex:
-                print_exc()  # TODO: print to self.stderr
+            except Exception:
+                print_exc()  # TODO(joshuata): print to self.stderr

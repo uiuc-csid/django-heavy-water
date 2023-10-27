@@ -5,11 +5,11 @@ description = ""
 authors = ["Josh Asplund <joshasplund@gmail.com>"]
 repository = "https://github.com/joshuata/django-heavy-water"
 packages = [
-    { include = "heavy_water" },
+    { include = "heavy_water", from = "src" },
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6.2"
+python = ">=3.8"
 Django = ">=3.0"
 
 [tool.poetry.dev-dependencies]
@@ -18,7 +18,14 @@ mypy-extensions = "*"
 django-stubs = "*"
 black = "*"
 pre-commit = "*"
+ruff = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.8"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+select = ["F", "E", "W", "C90", "I", "DJ", "T20", "TD", "S"]
+ignore = ["E501", "TD003"]
+target-version = "py38"
+src = ["src"]
