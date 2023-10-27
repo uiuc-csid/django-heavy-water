@@ -22,17 +22,18 @@
             },
             
             "extensions": [
-                "ms-python.python",
-                "ms-python.black-formatter",
-                "ms-python.vscode-pylance",
-                "piotrpalarz.vscode-gitignore-generator",
-                "mikestead.dotenv",
-                "batisteo.vscode-django",
-                "eamodio.gitlens",
-                "njpwerner.autodocstring",
-                "Gruntfuggly.todo-tree",
-                "tamasfe.even-better-toml"
-            ]
+				"ms-python.python",
+				"ms-python.black-formatter",
+				"ms-python.vscode-pylance",
+				"piotrpalarz.vscode-gitignore-generator",
+				"mikestead.dotenv",
+				"batisteo.vscode-django",
+				"eamodio.gitlens",
+				"njpwerner.autodocstring",
+				"Gruntfuggly.todo-tree",
+				"tamasfe.even-better-toml",
+				"charliermarsh.ruff"
+			]
         }
     },
 

@@ -1,6 +1,6 @@
 from importlib import import_module
 from inspect import getmembers, isclass
-from traceback import print_exc
+from traceback import print_exception
 
 from django.apps import apps
 from django.conf import settings
@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils.module_loading import module_has_submodule
 
 from heavy_water import BaseDataBuilder
+from heavy_water.settings import ENV_MAPPING, FIXTURE_MODULE
 
 
 class Command(FlushCommand):
@@ -23,8 +24,6 @@ class Command(FlushCommand):
             help="Wipe the database?",
         )
 
-        # TODO(joshuata): Add arguments for tagged data fixtures
-
     @transaction.atomic
     def handle(self, *args, **options):
         if options.get("wipe"):
@@ -32,11 +31,11 @@ class Command(FlushCommand):
 
         data_builders = []
         for app in apps.get_app_configs():
-            for module_name in settings.HEAVY_WATER_FIXTURE_MODULE:
+            for module_name in FIXTURE_MODULE:
                 if not module_has_submodule(app.module, module_name):
                     continue
                 module = import_module(f"{app.name}.{module_name}")
-                for name, member in getmembers(module):
+                for _, member in getmembers(module):
                     if (
                         isclass(member)
                         and issubclass(member, BaseDataBuilder)
@@ -45,14 +44,17 @@ class Command(FlushCommand):
                         setattr(member, "app_name", app.name)
                         data_builders.append(member)
 
+        tag_list = ENV_MAPPING.get(settings.DJANGO_ENV, None)
         for builder in data_builders:
-            try:
-                obj = builder(
-                    app_name=builder.app_name,
-                    stdout=self.stdout,
-                    stderr=self.stderr,
-                    style=self.style,
-                )
-                obj._heavy_water()
-            except Exception:
-                print_exc()  # TODO(joshuata): print to self.stderr
+            # Check whether the builder should execute given the current env
+            if any([getattr(builder, tag, False) for tag in tag_list]):
+                try:
+                    obj = builder(
+                        app_name=builder.app_name,
+                        stdout=self.stdout,
+                        stderr=self.stderr,
+                        style=self.style,
+                    )
+                    obj._heavy_water()
+                except Exception as ex:
+                    print_exception(value=ex, file=self.stderr)
