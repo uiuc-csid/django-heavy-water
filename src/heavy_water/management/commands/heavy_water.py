@@ -1,6 +1,6 @@
 from importlib import import_module
 from inspect import getmembers, isclass
-from traceback import print_exception
+from traceback import format_exception
 
 from django.apps import apps
 from django.conf import settings
@@ -57,4 +57,6 @@ class Command(FlushCommand):
                     )
                     obj._heavy_water()
                 except Exception as ex:
-                    print_exception(value=ex, file=self.stderr)
+                    output = format_exception(ex)
+                    output = "\n".join(output)
+                    self.stderr.write(self.style.ERROR_OUTPUT(output))

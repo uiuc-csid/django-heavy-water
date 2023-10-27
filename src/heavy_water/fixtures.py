@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from traceback import print_exc
+from traceback import format_exception
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
@@ -34,15 +34,19 @@ class BaseDataBuilder(ABC):
             with transaction.atomic():
                 self.handle()
                 self.stdout.write(
-                    self.style.SUCCESS(f"Successfully set up data for {self.app_name}")
+                    self.style.SUCCESS(
+                        f"Successfully set up data for {self.app_name} - {self.__class__.__name__}"
+                    )
                 )
-        except AssertionError:
+        except AssertionError as ex:
             self.stderr.write(
                 self.style.ERROR(
-                    f"Assertion failed setting up data for {self.app_name}."
+                    f"Assertion failed setting up data for {self.app_name} - {self.__class__.__name__}."
                 )
             )
-            print_exc()
+            output = format_exception(ex)
+            output = "\n".join(output)
+            self.stderr.write(self.style.ERROR_OUTPUT(output))
             self.stderr.write(self.style.ERROR("Rolling back transaction"))
 
     def get_or_create_superuser(
