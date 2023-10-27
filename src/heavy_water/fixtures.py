@@ -79,6 +79,7 @@ class BaseDataBuilder(ABC):
         if configure_user is not None:
             configure_user(superuser)
 
+        superuser.save()
         return superuser
 
     @abstractmethod
