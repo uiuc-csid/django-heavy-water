@@ -1,0 +1,31 @@
+[settings]
+python.uv_venv_auto = "create|source"
+python.uv_venv_create_args = ['--seed']
+
+[tools]
+uv = "0.11"
+ruff = "0.16"
+hk = "2"
+
+[env]
+_.python.venv = { path = ".venv", create = false }
+
+[tasks.sync]
+description = "Install the package and dev dependencies into .venv"
+run = "uv sync"
+
+[tasks.lint]
+description = "Run all checks (ruff lint + format check)"
+run = "hk check --all"
+
+[tasks.fix]
+description = "Apply ruff fixes and formatting"
+run = "hk fix --all"
+
+[tasks.typecheck]
+description = "Type check with mypy"
+run = "uv run mypy"
+
+[tasks.build]
+description = "Build sdist and wheel"
+run = "uv build"

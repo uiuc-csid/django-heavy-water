@@ -1,10 +1,12 @@
-ARG PYTHON_VERSION=3.9
+ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    MISE_INSTALL_PATH=/usr/local/bin/mise \
+    UV_PYTHON_PREFERENCE=only-system
 
-RUN pip install "poetry"
+RUN curl -fsSL https://mise.run | sh
 
 ENV DEBIAN_FRONTEND=dialog

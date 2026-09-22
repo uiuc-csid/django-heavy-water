@@ -6,24 +6,23 @@
         "dockerfile": "Dockerfile",
         "context": "..",
         "args": { 
-            "PYTHON_VERSION": "3.9"
+            "PYTHON_VERSION": "3.10"
         }
     },
     "postCreateCommand": {
-        "Install python packages": "poetry install --no-interaction --no-ansi && poetry run pre-commit install"
+        "Install tools and python packages": "mise trust && mise install && mise x -- uv sync && mise x -- hk install --mise"
     },
     "customizations": {
         "vscode": {
             "settings": { 
-                "python.defaultInterpreterPath": "/root/.cache/pypoetry/virtualenvs/django-heavy-water-O4_lGw6L-py3.9/bin/python",
+                "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
                 "[python]": {
-                    "editor.defaultFormatter": "ms-python.black-formatter"
+                    "editor.defaultFormatter": "charliermarsh.ruff"
                 }
             },
             
             "extensions": [
 				"ms-python.python",
-				"ms-python.black-formatter",
 				"ms-python.vscode-pylance",
 				"piotrpalarz.vscode-gitignore-generator",
 				"mikestead.dotenv",
@@ -32,6 +31,8 @@
 				"njpwerner.autodocstring",
 				"Gruntfuggly.todo-tree",
 				"tamasfe.even-better-toml",
+				"hverlin.mise-vscode",
+				"apple.pkl-vscode",
 				"charliermarsh.ruff"
 			]
         }
