@@ -10,12 +10,6 @@ DEFAULTS: dict[str, Any] = {
     "SUPERUSER_FIRST_NAME": "Root",
     "SUPERUSER_LAST_NAME": "User",
     "FIXTURE_MODULE": ["fixtures"],
-    "ENV_MAPPING": {
-        "development": ["DEV"],
-        "test": ["TEST"],
-        "staging": ["STAGING"],
-        "production": ["PROD"],
-    },
 }
 
 
@@ -29,7 +23,6 @@ class HeavyWaterSettings:
     SUPERUSER_FIRST_NAME: str
     SUPERUSER_LAST_NAME: str
     FIXTURE_MODULE: list[str]
-    ENV_MAPPING: dict[str, list[str]]
 
     def __getattr__(self, name: str) -> Any:
         if name not in DEFAULTS:

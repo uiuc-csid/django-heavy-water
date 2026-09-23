@@ -1,3 +1,5 @@
+"""Base class for data builders run by the ``heavy_water`` management command."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -19,6 +21,7 @@ from heavy_water.conf import app_settings
 
 
 def _has_field(model: type[Model], name: str) -> bool:
+    """Return whether ``model`` has a field called ``name``."""
     try:
         model._meta.get_field(name)
     except FieldDoesNotExist:
@@ -27,10 +30,18 @@ def _has_field(model: type[Model], name: str) -> bool:
 
 
 class BaseDataBuilder(ABC):
-    DEV = True
-    TEST = False
-    STAGING = False
-    PROD = False
+    """Base class for a unit of seed data.
+
+    Subclass it in an app's ``fixtures`` module (see ``HEAVY_WATER_FIXTURE_MODULE``)
+    and implement :meth:`handle`. The ``heavy_water`` command discovers every
+    subclass, and runs each one whose :meth:`should_run` returns ``True``.
+
+    Attributes:
+        app_name: Name of the app the builder was discovered in.
+        stdout: The command's output stream, for progress messages.
+        stderr: The command's error stream.
+        style: The command's style, for coloring output (``self.style.SUCCESS``).
+    """
 
     def __init__(
         self, app_name: str, stdout: OutputWrapper, stderr: OutputWrapper, style: Style
@@ -40,26 +51,44 @@ class BaseDataBuilder(ABC):
         self.stderr = stderr
         self.style = style
 
-    def _heavy_water(self, *args: Any, **kwargs: Any) -> bool:
-        try:
-            with transaction.atomic():
-                self.handle()
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Successfully set up data for {self.app_name} - {self.__class__.__name__}"
+    def _heavy_water(self, *args: Any, **options: Any) -> bool:
+        """Run :meth:`handle` in a savepoint, if :meth:`should_run` allows it.
+
+        ``args`` and ``options`` are the command's arguments, passed through to
+        :meth:`should_run`.
+
+        An ``AssertionError`` rolls back this builder's changes, is reported to
+        stderr, and returns ``False``. Other exceptions also roll back, but
+        propagate to the caller.
+
+        Returns:
+            ``False`` if an assertion failed, otherwise ``True`` (including when
+            the builder was skipped).
+        """
+        if not self.should_run(*args, **options):
+            self.stdout.write(f"{self.app_name} - {self.__class__.__name__}: Skipped")
+        if self.should_run(*args, **options):
+            try:
+                with transaction.atomic():
+                    self.handle()
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"{self.app_name} - {self.__class__.__name__}: Successfully set up data"
+                        )
+                    )
+                return True
+            except AssertionError as ex:
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"{self.app_name} - {self.__class__.__name__}: Assertion failed setting up data"
                     )
                 )
+                output = "".join(format_exception(ex))
+                self.stderr.write(self.style.ERROR_OUTPUT(output))
+                self.stderr.write(self.style.ERROR("Rolling back transaction"))
+                return False
+        else:
             return True
-        except AssertionError as ex:
-            self.stderr.write(
-                self.style.ERROR(
-                    f"Assertion failed setting up data for {self.app_name} - {self.__class__.__name__}."
-                )
-            )
-            output = "".join(format_exception(ex))
-            self.stderr.write(self.style.ERROR_OUTPUT(output))
-            self.stderr.write(self.style.ERROR("Rolling back transaction"))
-            return False
 
     def get_or_create_superuser(
         self,
@@ -75,6 +104,22 @@ class BaseDataBuilder(ABC):
         ``username`` is the value of the user model's ``USERNAME_FIELD``. When
         that field is the email field and ``username`` is omitted, ``email`` is
         used as the identifier. Name fields are only set on models that have them.
+
+        Omitted arguments fall back to the ``HEAVY_WATER_SUPERUSER_*`` settings.
+        ``email``, ``first_name``, ``last_name`` and ``password`` are only used
+        when the user is created; an existing user is returned unchanged.
+
+        Args:
+            username: Value of the login field to look up or create.
+            email: Email address for a new user.
+            first_name: First name for a new user.
+            last_name: Last name for a new user.
+            password: Password for a new user.
+            configure_user: Called with the user, new or existing, before it is
+                saved. Use it to set extra fields.
+
+        Returns:
+            The existing or newly created superuser.
         """
         user_model = get_user_model()
         # The swappable user model is only typed as AbstractBaseUser, whose manager
@@ -113,4 +158,21 @@ class BaseDataBuilder(ABC):
 
     @abstractmethod
     def handle(self) -> None:
-        pass
+        """Create this builder's data.
+
+        Runs inside its own savepoint, so raising (for example with ``assert``)
+        rolls back only this builder's changes.
+        """
+
+    def should_run(self, *args: Any, **options: Any) -> bool:
+        """Return whether this builder should run in the current environment.
+
+        Runs every time by default. Override it to limit the builder, for example
+        ``return settings.DEBUG``.
+
+        Args:
+            *args: Positional arguments passed to the ``heavy_water`` command.
+            **options: The command's parsed options, such as ``wipe``,
+                ``verbosity`` and ``database``.
+        """
+        return True

@@ -12,15 +12,13 @@ The package isn't on PyPI yet, so install it from GitHub:
 pip install git+https://github.com/joshuata/django-heavy-water
 ```
 
-Add it to `INSTALLED_APPS`, and set `DJANGO_ENV` to the name of the current environment:
+Add it to `INSTALLED_APPS`:
 
 ```python
 INSTALLED_APPS = [
     # ...
     "heavy_water",
 ]
-
-DJANGO_ENV = "development"  # or "test", "staging", "production"
 ```
 
 ## Usage
@@ -31,14 +29,18 @@ Create a `fixtures.py` module in any installed app and subclass `BaseDataBuilder
 
 ```python
 # myapp/fixtures.py
+from typing import Any
+
+from django.conf import settings
+
 from heavy_water import BaseDataBuilder
 
 from myapp.models import Widget
 
 
 class WidgetData(BaseDataBuilder):
-    DEV = True       # default
-    STAGING = True   # also run in staging
+    def should_run(self, *args: Any, **options: Any) -> bool:
+        return settings.DEBUG
 
     def handle(self) -> None:
         self.get_or_create_superuser()
@@ -48,7 +50,7 @@ class WidgetData(BaseDataBuilder):
 ### Run it
 
 ```sh
-python manage.py heavy_water          # run builders for DJANGO_ENV
+python manage.py heavy_water          # run all builders
 python manage.py heavy_water --wipe   # flush the database first
 ```
 
@@ -56,7 +58,7 @@ python manage.py heavy_water --wipe   # flush the database first
 
 ### How builders run
 
-- The command runs every builder whose environment tag is enabled for `DJANGO_ENV`. The tags are class attributes: `DEV` is `True` by default; `TEST`, `STAGING` and `PROD` are `False`.
+- The command runs every builder it finds whose `should_run()` returns `True`. By default it always does; override it to limit a builder to certain environments, as in the example above. `should_run()` receives the command's arguments and parsed options (such as `wipe` and `verbosity`), so you can use them as conditions too, for example `return options["wipe"]`.
 - All builders run in one transaction, and each builder gets its own savepoint. If a builder raises, only its changes are rolled back and the other builders still run.
 - If any builder failed, the command exits with an error listing them after committing the rest.
 
@@ -81,24 +83,12 @@ All settings are optional.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `HEAVY_WATER_ENV_MAPPING` | `{"development": ["DEV"], "test": ["TEST"], "staging": ["STAGING"], "production": ["PROD"]}` | Maps each `DJANGO_ENV` value to the builder tags that run in it. Tags are just class-attribute names, so you can add your own. |
 | `HEAVY_WATER_FIXTURE_MODULE` | `["fixtures"]` | Submodule names searched for builders in each installed app. |
 | `HEAVY_WATER_SUPERUSER_USERNAME` | `"root"` | Default login for `get_or_create_superuser()` (the email is used instead when the login field is the email). |
 | `HEAVY_WATER_SUPERUSER_EMAIL` | `"root@example.com"` | Default email. |
 | `HEAVY_WATER_SUPERUSER_PASSWORD` | `"rootroot"` | Default password. |
 | `HEAVY_WATER_SUPERUSER_FIRST_NAME` | `"Root"` | Default first name, if the user model has the field. |
 | `HEAVY_WATER_SUPERUSER_LAST_NAME` | `"User"` | Default last name, if the user model has the field. |
-
-`DJANGO_ENV` itself is required and must be a key in `HEAVY_WATER_ENV_MAPPING`.
-
-For example, to add a `demo` environment that runs both regular dev builders and builders tagged `DEMO`:
-
-```python
-HEAVY_WATER_ENV_MAPPING = {
-    "development": ["DEV"],
-    "demo": ["DEV", "DEMO"],
-}
-```
 
 ## Development
 
