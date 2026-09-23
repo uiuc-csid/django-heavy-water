@@ -4,4 +4,4 @@ from tests.testapp.models import Record
 
 class Basic(BaseDataBuilder):
     def handle(self) -> None:
-        Record.objects.create(name="basic")
+        Record.objects.using(self.database).create(name="basic")

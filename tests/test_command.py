@@ -119,3 +119,34 @@ class TestOptions:
 
         assert record_names() == {"basic", "wipe-only"}
         assert fixtures_options.WipeOnly.received_options["wipe"] is True
+
+
+@pytest.mark.django_db(databases=["default", "other"])
+class TestDatabaseOption:
+    def test_builders_write_to_the_selected_database(self) -> None:
+        run(database="other")
+
+        assert set(Record.objects.using("other").values_list("name", flat=True)) == {
+            "basic"
+        }
+        assert not Record.objects.using("default").exists()
+
+    def test_setting_selects_the_database(self, settings: Any) -> None:
+        settings.HEAVY_WATER_DATABASE = "other"
+
+        run()
+
+        assert Record.objects.using("other").exists()
+        assert not Record.objects.using("default").exists()
+
+    def test_option_overrides_the_setting(self, settings: Any) -> None:
+        settings.HEAVY_WATER_DATABASE = "other"
+
+        run(database="default")
+
+        assert Record.objects.using("default").exists()
+        assert not Record.objects.using("other").exists()
+
+    def test_unknown_database_is_an_error(self) -> None:
+        with pytest.raises(CommandError, match="Unknown database 'missing'"):
+            run(database="missing")

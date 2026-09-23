@@ -40,15 +40,25 @@ class BaseDataBuilder(ABC):
         stdout: The command's output stream, for progress messages.
         stderr: The command's error stream.
         style: The command's style, for coloring output (``self.style.SUCCESS``).
+        database: Alias of the database to seed: the command's ``--database``, or
+            ``HEAVY_WATER_DATABASE``.
+            The builder's savepoint and :meth:`get_or_create_superuser` use it;
+            queries in :meth:`handle` should too, via ``.using(self.database)``.
     """
 
     def __init__(
-        self, app_name: str, stdout: OutputWrapper, stderr: OutputWrapper, style: Style
+        self,
+        app_name: str,
+        stdout: OutputWrapper,
+        stderr: OutputWrapper,
+        style: Style,
+        database: str | None = None,
     ) -> None:
         self.app_name = app_name
         self.stdout = stdout
         self.stderr = stderr
         self.style = style
+        self.database = database or app_settings.DATABASE
 
     @property
     def builder_name(self) -> str:
@@ -70,7 +80,7 @@ class BaseDataBuilder(ABC):
             self.stdout.write(f"{self.builder_name}: Skipped")
             return False
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=self.database):
                 self.handle()
         except AssertionError:
             self.stderr.write(
@@ -119,7 +129,10 @@ class BaseDataBuilder(ABC):
         user_model = get_user_model()
         # The swappable user model is only typed as AbstractBaseUser, whose manager
         # lacks create_superuser; any model usable with createsuperuser provides it.
-        user_manager = cast("UserManager[AbstractUser]", user_model._default_manager)
+        user_manager = cast(
+            "UserManager[AbstractUser]",
+            user_model._default_manager.db_manager(self.database),
+        )
         username_field = cast(str, user_model.USERNAME_FIELD)
         email_field = user_model.get_email_field_name()
 

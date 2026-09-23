@@ -80,6 +80,41 @@ class TestDefaultUserModel:
         assert user.first_name == "Renamed"
 
 
+@pytest.mark.django_db(databases=["default", "other"])
+def test_uses_the_builders_database() -> None:
+    builder = Basic(
+        app_name="tests.testapp",
+        stdout=OutputWrapper(StringIO()),
+        stderr=OutputWrapper(StringIO()),
+        style=no_style(),
+        database="other",
+    )
+
+    user = builder.get_or_create_superuser()
+    again = builder.get_or_create_superuser()
+
+    assert user._state.db == "other"
+    assert again.pk == user.pk
+    assert get_user_model().objects.using("other").count() == 1
+    assert not get_user_model().objects.using("default").exists()
+
+
+@pytest.mark.django_db(databases=["default", "other"])
+def test_builder_database_defaults_to_the_setting(
+    builder: Basic, settings: Any
+) -> None:
+    settings.HEAVY_WATER_DATABASE = "other"
+    fresh = Basic(
+        app_name="tests.testapp",
+        stdout=OutputWrapper(StringIO()),
+        stderr=OutputWrapper(StringIO()),
+        style=no_style(),
+    )
+
+    assert builder.database == "default"
+    assert fresh.database == "other"
+
+
 class TestEmailUserModel:
     @pytest.fixture(autouse=True)
     def email_user_model(self, settings: Any) -> None:

@@ -4,6 +4,7 @@ from traceback import format_exception
 from typing import Any
 
 from django.apps import apps
+from django.conf import settings
 from django.core.management.base import CommandError, CommandParser
 from django.core.management.commands.flush import Command as FlushCommand
 from django.db import transaction
@@ -22,13 +23,28 @@ class Command(FlushCommand):
         parser.add_argument(
             "--wipe",
             action="store_true",
-            help="Wipe the database?",
+            help="Flush the database before running the builders.",
         )
+        # None means "not given", so HEAVY_WATER_DATABASE can apply. flush's help
+        # text for --database would otherwise claim it defaults to "default".
+        parser.set_defaults(database=None)
+        for action in parser._actions:
+            if action.dest == "database":
+                action.help = (
+                    "Nominates a database to seed (and flush, with --wipe). "
+                    'Defaults to HEAVY_WATER_DATABASE, or the "default" database.'
+                )
 
     def handle(self, *args: Any, **options: Any) -> None:
         # Commit whatever succeeded before reporting failure, so a single bad
         # builder doesn't roll back the others.
-        with transaction.atomic():
+        database = options.get("database") or app_settings.DATABASE
+        if database not in settings.DATABASES:
+            raise CommandError(
+                f"Unknown database {database!r}; expected one of {sorted(settings.DATABASES)}"
+            )
+        options["database"] = database
+        with transaction.atomic(using=database):
             failures = self._build(*args, **options)
         if failures:
             raise CommandError(
@@ -48,6 +64,7 @@ class Command(FlushCommand):
                     stdout=self.stdout,
                     stderr=self.stderr,
                     style=self.style,
+                    database=options["database"],
                 )
                 obj._heavy_water(*args, **options)
             except Exception as ex:

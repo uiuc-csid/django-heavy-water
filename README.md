@@ -52,9 +52,16 @@ class WidgetData(BaseDataBuilder):
 ```sh
 python manage.py heavy_water          # run all builders
 python manage.py heavy_water --wipe   # flush the database first
+python manage.py heavy_water --database other   # seed a different database
 ```
 
 `--wipe` uses Django's `flush` command, so it accepts `flush`'s options too, such as `--no-input`.
+
+With `--database` (or the `HEAVY_WATER_DATABASE` setting), the command's transaction and `get_or_create_superuser()` use that database, and the alias is available to builders as `self.database`. Queries you write in `handle()` need to use it explicitly:
+
+```python
+Widget.objects.using(self.database).get_or_create(name="Sprocket")
+```
 
 ### How builders run
 
@@ -84,6 +91,7 @@ All settings are optional.
 | Setting | Default | Description |
 | --- | --- | --- |
 | `HEAVY_WATER_FIXTURE_MODULE` | `["fixtures"]` | Submodule names searched for builders in each installed app. |
+| `HEAVY_WATER_DATABASE` | `"default"` | Alias from `DATABASES` to seed. `--database` overrides it. |
 | `HEAVY_WATER_SUPERUSER_USERNAME` | `"root"` | Default login for `get_or_create_superuser()` (the email is used instead when the login field is the email). |
 | `HEAVY_WATER_SUPERUSER_EMAIL` | `"root@example.com"` | Default email. |
 | `HEAVY_WATER_SUPERUSER_PASSWORD` | `"rootroot"` | Default password. |
