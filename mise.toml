@@ -9,17 +9,30 @@ hk = "2"
 
 [env]
 _.python.venv = { path = ".venv", create = false }
+HK_MISE = 1
+
+[hooks]
+# Automatically install/update hooks when tools are installed
+postinstall = "hk install --mise"
+
+[tasks.setup]
+description = "Set up a development environment: install dependencies and git hooks"
+depends = ["sync", "hooks"]
 
 [tasks.sync]
 description = "Install the package and dev dependencies into .venv"
 run = "uv sync"
 
+[tasks.hooks]
+description = "Install the hk pre-commit hook"
+run = "hk install --mise"
+
 [tasks.lint]
-description = "Run all checks (ruff lint + format check)"
+description = "Run all checks: ruff lint, ruff format, mypy, uv lock"
 run = "hk check --all"
 
 [tasks.fix]
-description = "Apply ruff fixes and formatting"
+description = "Apply ruff fixes and formatting, and relock"
 run = "hk fix --all"
 
 [tasks.typecheck]
