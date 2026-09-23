@@ -13,7 +13,7 @@ from django.core.management.base import OutputWrapper
 from django.core.management.color import Style
 from django.db import transaction
 
-from heavy_water import settings
+from heavy_water.conf import app_settings
 
 
 class BaseDataBuilder(ABC):
@@ -66,11 +66,11 @@ class BaseDataBuilder(ABC):
             "UserManager[AbstractUser]", get_user_model()._default_manager
         )
 
-        username = username or settings.SUPERUSER_USERNAME
-        email = email or settings.SUPERUSER_EMAIL
-        password = password or settings.SUPERUSER_PASSWORD
-        first_name = first_name or settings.SUPERUSER_FIRST_NAME
-        last_name = last_name or settings.SUPERUSER_LAST_NAME
+        username = username or app_settings.SUPERUSER_USERNAME
+        email = email or app_settings.SUPERUSER_EMAIL
+        password = password or app_settings.SUPERUSER_PASSWORD
+        first_name = first_name or app_settings.SUPERUSER_FIRST_NAME
+        last_name = last_name or app_settings.SUPERUSER_LAST_NAME
 
         superuser = user_manager.filter(username=username).first()
         if superuser is None:

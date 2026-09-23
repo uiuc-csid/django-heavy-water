@@ -11,7 +11,7 @@ from django.db import transaction
 from django.utils.module_loading import module_has_submodule
 
 from heavy_water import BaseDataBuilder
-from heavy_water.settings import ENV_MAPPING, FIXTURE_MODULE
+from heavy_water.conf import app_settings
 
 
 class Command(FlushCommand):
@@ -42,10 +42,11 @@ class Command(FlushCommand):
 
         failures: list[str] = []
         env = getattr(settings, "DJANGO_ENV", None)
-        tag_list = ENV_MAPPING.get(env) if env is not None else None
+        env_mapping = app_settings.ENV_MAPPING
+        tag_list = env_mapping.get(env) if env is not None else None
         if tag_list is None:
             raise CommandError(
-                f"settings.DJANGO_ENV must be one of {sorted(ENV_MAPPING)}, got {env!r}"
+                f"settings.DJANGO_ENV must be one of {sorted(env_mapping)}, got {env!r}"
             )
         for app_name, builder in self._discover_builders():
             # Check whether the builder should execute given the current env
@@ -69,7 +70,7 @@ class Command(FlushCommand):
     def _discover_builders(self) -> list[tuple[str, type[BaseDataBuilder]]]:
         data_builders: list[tuple[str, type[BaseDataBuilder]]] = []
         for app in apps.get_app_configs():
-            for module_name in FIXTURE_MODULE:
+            for module_name in app_settings.FIXTURE_MODULE:
                 if not module_has_submodule(app.module, module_name):
                     continue
                 module = import_module(f"{app.name}.{module_name}")
