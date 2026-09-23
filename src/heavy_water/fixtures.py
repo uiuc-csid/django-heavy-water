@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from traceback import format_exception
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
@@ -51,44 +50,40 @@ class BaseDataBuilder(ABC):
         self.stderr = stderr
         self.style = style
 
+    @property
+    def builder_name(self) -> str:
+        return f"{self.app_name} - {self.__class__.__name__}"
+
     def _heavy_water(self, *args: Any, **options: Any) -> bool:
         """Run :meth:`handle` in a savepoint, if :meth:`should_run` allows it.
 
         ``args`` and ``options`` are the command's arguments, passed through to
         :meth:`should_run`.
 
-        An ``AssertionError`` rolls back this builder's changes, is reported to
-        stderr, and returns ``False``. Other exceptions also roll back, but
-        propagate to the caller.
+        Any exception rolls back this builder's changes and propagates to the
+        caller. An ``AssertionError`` is also reported to stderr first.
 
         Returns:
-            ``False`` if an assertion failed, otherwise ``True`` (including when
-            the builder was skipped).
+            ``True`` if the builder ran, ``False`` if it was skipped.
         """
         if not self.should_run(*args, **options):
-            self.stdout.write(f"{self.app_name} - {self.__class__.__name__}: Skipped")
-        if self.should_run(*args, **options):
-            try:
-                with transaction.atomic():
-                    self.handle()
-                    self.stdout.write(
-                        self.style.SUCCESS(
-                            f"{self.app_name} - {self.__class__.__name__}: Successfully set up data"
-                        )
-                    )
-                return True
-            except AssertionError as ex:
-                self.stderr.write(
-                    self.style.ERROR(
-                        f"{self.app_name} - {self.__class__.__name__}: Assertion failed setting up data"
-                    )
+            self.stdout.write(f"{self.builder_name}: Skipped")
+            return False
+        try:
+            with transaction.atomic():
+                self.handle()
+        except AssertionError:
+            self.stderr.write(
+                self.style.ERROR(
+                    f"{self.builder_name}: Assertion failed setting up data"
                 )
-                output = "".join(format_exception(ex))
-                self.stderr.write(self.style.ERROR_OUTPUT(output))
-                self.stderr.write(self.style.ERROR("Rolling back transaction"))
-                return False
-        else:
-            return True
+            )
+            self.stderr.write(self.style.ERROR("Rolling back transaction"))
+            raise
+        self.stdout.write(
+            self.style.SUCCESS(f"{self.builder_name}: Successfully set up data")
+        )
+        return True
 
     def get_or_create_superuser(
         self,

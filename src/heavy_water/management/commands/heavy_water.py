@@ -41,6 +41,7 @@ class Command(FlushCommand):
 
         failures: list[str] = []
         for app_name, builder in self._discover_builders():
+            obj: BaseDataBuilder | None = None
             try:
                 obj = builder(
                     app_name=app_name,
@@ -48,13 +49,14 @@ class Command(FlushCommand):
                     stderr=self.stderr,
                     style=self.style,
                 )
-                succeeded = obj._heavy_water(*args, **options)
+                obj._heavy_water(*args, **options)
             except Exception as ex:
-                succeeded = False
+                # Creating the builder can fail too, before builder_name exists.
+                failures.append(
+                    obj.builder_name if obj else f"{app_name} - {builder.__name__}"
+                )
                 output = "".join(format_exception(ex))
                 self.stderr.write(self.style.ERROR_OUTPUT(output))
-            if not succeeded:
-                failures.append(f"{app_name}.{builder.__name__}")
         return failures
 
     def _discover_builders(self) -> list[tuple[str, type[BaseDataBuilder]]]:

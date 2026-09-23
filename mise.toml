@@ -35,6 +35,10 @@ run = "hk check --all"
 description = "Apply ruff fixes and formatting, and relock"
 run = "hk fix --all"
 
+[tasks.test]
+description = "Run the test suite"
+run = "uv run pytest"
+
 [tasks.typecheck]
 description = "Type check with mypy"
 run = "uv run mypy"

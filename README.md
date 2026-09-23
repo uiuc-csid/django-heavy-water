@@ -110,7 +110,8 @@ Tasks:
 | `mise run hooks` | Installs the hk pre-commit hook. |
 | `mise run lint` | Runs all checks: ruff lint, ruff format, mypy and `uv lock --check`. The pre-commit hook runs the same checks. |
 | `mise run fix` | Applies ruff fixes and formatting, and updates `uv.lock`. |
-| `mise run typecheck` | Runs mypy in strict mode. |
+| `mise run test` | Runs the test suite with pytest. |
+| `mise run typecheck` | Runs mypy in strict mode on the package. |
 | `mise run build` | Builds the sdist and wheel into `dist/`. |
 
 Run `mise tasks` to list them. To add a script, define it as a task in `mise.toml`.
