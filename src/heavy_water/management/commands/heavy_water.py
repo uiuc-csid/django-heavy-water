@@ -15,7 +15,7 @@ from heavy_water.conf import app_settings
 
 
 class Command(FlushCommand):
-    help = "Creates a superuser and generates test data"
+    help = "Runs the data builders for the current environment"
     requires_migrations_checks = True
 
     def add_arguments(self, parser: CommandParser) -> None:

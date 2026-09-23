@@ -4,7 +4,6 @@ from typing import Any
 from django.conf import settings
 
 DEFAULTS: dict[str, Any] = {
-    "CREATE_ROOT_USER": True,
     "SUPERUSER_USERNAME": "root",
     "SUPERUSER_EMAIL": "root@example.com",
     "SUPERUSER_PASSWORD": "rootroot",
@@ -24,7 +23,6 @@ class HeavyWaterSettings:
     """Reads ``HEAVY_WATER_<NAME>`` from Django settings on every access, so
     ``override_settings`` takes effect."""
 
-    CREATE_ROOT_USER: bool
     SUPERUSER_USERNAME: str
     SUPERUSER_EMAIL: str
     SUPERUSER_PASSWORD: str
