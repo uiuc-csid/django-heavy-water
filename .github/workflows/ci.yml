@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - run: mise run lint
+      - run: mise run build
+
+  test:
+    name: test (Python ${{ matrix.python }}, Django ${{ matrix.django }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        django: ["4.2", "5.2", "6.0", "6.1"]
+        exclude:
+          # Django 4.2 supports Python 3.8–3.12.
+          - { django: "4.2", python: "3.13" }
+          - { django: "4.2", python: "3.14" }
+          # Django 6.x requires Python 3.12+.
+          - { django: "6.0", python: "3.10" }
+          - { django: "6.0", python: "3.11" }
+          - { django: "6.1", python: "3.10" }
+          - { django: "6.1", python: "3.11" }
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+      DJANGO: ${{ matrix.django }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - run: mise run test-django

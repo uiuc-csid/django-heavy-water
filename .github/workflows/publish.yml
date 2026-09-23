@@ -1,0 +1,51 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - name: Check the release tag matches the package version
+        run: |
+          version="$(uv version --short)"
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in pyproject.toml"
+            exit 1
+          fi
+      - run: mise run lint
+      - run: mise run test
+      - run: mise run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    # Only the canonical repository is registered as a trusted publisher on PyPI.
+    if: github.repository == 'joshuata/django-heavy-water'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/django-heavy-water/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - run: mise run publish

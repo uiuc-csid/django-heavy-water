@@ -39,6 +39,14 @@ run = "hk fix --all"
 description = "Run the test suite"
 run = "uv run pytest"
 
+[tasks.test-django]
+description = "Run the tests against another Django version: DJANGO=5.2 mise run test-django"
+run = [
+  "uv sync --locked",
+  'uv pip install --python "${UV_PROJECT_ENVIRONMENT:-.venv}" "django~=${DJANGO:?set DJANGO, e.g. DJANGO=5.2}.0"',
+  "uv run --no-sync pytest",
+]
+
 [tasks.typecheck]
 description = "Type check with mypy"
 run = "uv run mypy"
@@ -46,3 +54,7 @@ run = "uv run mypy"
 [tasks.build]
 description = "Build sdist and wheel"
 run = "uv build"
+
+[tasks.publish]
+description = "Upload dist/ to PyPI (uses trusted publishing in GitHub Actions)"
+run = "uv publish"
