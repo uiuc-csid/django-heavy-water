@@ -9,11 +9,21 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, AbstractUser, UserManager
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldDoesNotExist
 from django.core.management.base import OutputWrapper
 from django.core.management.color import Style
 from django.db import transaction
+from django.db.models import Model
 
 from heavy_water.conf import app_settings
+
+
+def _has_field(model: type[Model], name: str) -> bool:
+    try:
+        model._meta.get_field(name)
+    except FieldDoesNotExist:
+        return False
+    return True
 
 
 class BaseDataBuilder(ABC):
@@ -60,30 +70,45 @@ class BaseDataBuilder(ABC):
         password: str | None = None,
         configure_user: Callable[[AbstractBaseUser], None] | None = None,
     ) -> AbstractBaseUser:
+        """Return the superuser identified by ``username``, creating it if needed.
+
+        ``username`` is the value of the user model's ``USERNAME_FIELD``. When
+        that field is the email field and ``username`` is omitted, ``email`` is
+        used as the identifier. Name fields are only set on models that have them.
+        """
+        user_model = get_user_model()
         # The swappable user model is only typed as AbstractBaseUser, whose manager
         # lacks create_superuser; any model usable with createsuperuser provides it.
-        user_manager = cast(
-            "UserManager[AbstractUser]", get_user_model()._default_manager
-        )
+        user_manager = cast("UserManager[AbstractUser]", user_model._default_manager)
+        username_field = cast(str, user_model.USERNAME_FIELD)
+        email_field = user_model.get_email_field_name()
 
-        username = username or app_settings.SUPERUSER_USERNAME
         email = email or app_settings.SUPERUSER_EMAIL
-        password = password or app_settings.SUPERUSER_PASSWORD
-        first_name = first_name or app_settings.SUPERUSER_FIRST_NAME
-        last_name = last_name or app_settings.SUPERUSER_LAST_NAME
+        if username_field == email_field:
+            username = username or email
+        else:
+            username = username or app_settings.SUPERUSER_USERNAME
 
-        superuser = user_manager.filter(username=username).first()
-        if superuser is None:
-            superuser = user_manager.create_superuser(
-                username=username,
-                email=email,
-                password=password,
-            )
+        try:
+            superuser = user_manager.get_by_natural_key(username)
+        except user_model.DoesNotExist:
+            fields: dict[str, Any] = {
+                username_field: username,
+                "password": password or app_settings.SUPERUSER_PASSWORD,
+            }
+            optional_fields = {
+                email_field: email,
+                "first_name": first_name or app_settings.SUPERUSER_FIRST_NAME,
+                "last_name": last_name or app_settings.SUPERUSER_LAST_NAME,
+            }
+            for name, value in optional_fields.items():
+                if name not in fields and _has_field(user_model, name):
+                    fields[name] = value
+            superuser = user_manager.create_superuser(**fields)
 
         if configure_user is not None:
             configure_user(superuser)
-
-        superuser.save()
+            superuser.save()
         return superuser
 
     @abstractmethod
