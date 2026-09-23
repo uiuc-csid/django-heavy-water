@@ -122,6 +122,7 @@ Tasks:
 | `DJANGO=5.2 mise run test-django` | Runs the tests against another Django version. Set `UV_PYTHON` to pick the Python version too. |
 | `mise run typecheck` | Runs mypy in strict mode on the package. |
 | `mise run build` | Builds the sdist and wheel into `dist/`. |
+| `mise run bump [major\|minor\|patch]` | Bumps the version (patch by default), commits `pyproject.toml` and `uv.lock`, and tags the commit, e.g. `v0.2.1`. |
 | `mise run publish` | Uploads `dist/` to PyPI. Normally run by the publish workflow, not by hand. |
 
 Run `mise tasks` to list them. To add a script, define it as a task in `mise.toml`.
@@ -133,7 +134,7 @@ GitHub Actions (`.github/workflows/`) runs everything through the same mise task
 - **CI** (`ci.yml`), on pushes to `main` and on pull requests: `lint` and `build`, then `test-django` across supported Python and Django versions.
 - **Publish** (`publish.yml`), when a GitHub release is published: checks the release tag matches the version in `pyproject.toml` (`v0.3.0` or `0.3.0` for version `0.3.0`), runs lint, tests and build, then uploads to PyPI with trusted publishing.
 
-To release, bump `version` in `pyproject.toml`, merge it to `main`, and publish a GitHub release tagged with that version.
+To release, run `mise run bump` (or `bump minor` / `bump major`), push with `git push --follow-tags`, and publish a GitHub release from the new tag.
 
 The package ships a `py.typed` marker and is checked with mypy in strict mode, so new code must be fully type-annotated.
 

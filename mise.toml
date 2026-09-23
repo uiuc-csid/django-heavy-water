@@ -58,3 +58,30 @@ run = "uv build"
 [tasks.publish]
 description = "Upload dist/ to PyPI (uses trusted publishing in GitHub Actions)"
 run = "uv publish"
+
+[tasks.bump]
+description = "Bump the version, commit pyproject.toml and uv.lock, and tag the commit: mise run bump [major|minor|patch]"
+usage = 'arg "[part]" help="Which part of the version to bump" default="patch" { choices "major" "minor" "patch" }'
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+part="${usage_part:-patch}"
+
+if ! git diff --quiet HEAD -- pyproject.toml uv.lock; then
+  echo "pyproject.toml or uv.lock has uncommitted changes; commit or stash them first." >&2
+  exit 1
+fi
+
+version="$(uv version --bump "$part" --dry-run --short)"
+tag="v$version"
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  echo "Tag $tag already exists." >&2
+  exit 1
+fi
+
+uv version --bump "$part"
+git commit -m "Bump version to $version" -- pyproject.toml uv.lock
+git tag -a "$tag" -m "$tag"
+echo "Tagged $tag. Push with: git push --follow-tags"
+'''
